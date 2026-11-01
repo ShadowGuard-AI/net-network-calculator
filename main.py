@@ -33,6 +33,10 @@ def calculate_network_info(ip_address, cidr_mask):
         if not 0 <= cidr_mask <= 32:
             raise ValueError("CIDR mask must be between 0 and 32.")
 
+        # strict=False masks host bits without a word. Ask about 192.168.1.55
+        # with mask 24 and the report describes the .0 network as if that is
+        # what was typed. IPv6 input dies at the mask range check above,
+        # since no mask above 32 is allowed through.
         network = ipaddress.ip_network(f"{ip_address}/{cidr_mask}", strict=False)
 
         network_address = str(network.network_address)
@@ -40,9 +44,15 @@ def calculate_network_info(ip_address, cidr_mask):
 
         # Calculate usable host range
         if network.num_addresses > 2:
+            # I build the whole hosts list just to read its two ends. On a /8 that
+            # is millions of entries, and on a /0 it is not finishing at all. The
+            # arithmetic shortcut exists; I have not taken it yet.
             first_usable_host = str(list(network.hosts())[0])
             last_usable_host = str(list(network.hosts())[-1])
         else:
+            # /31 and /32 land here. Real point to point links use both /31
+            # addresses as hosts, but this tool reports them as unusable rather
+            # than carry a special case.
             first_usable_host = "N/A (Network too small)"
             last_usable_host = "N/A (Network too small)"
 
@@ -53,6 +63,9 @@ def calculate_network_info(ip_address, cidr_mask):
             "broadcast_address": broadcast_address,
             "first_usable_host": first_usable_host,
             "last_usable_host": last_usable_host,
+            # total_hosts is every address in the block, network and broadcast
+            # included. A /24 reports 256 even though only 254 are usable, and
+            # the printed label does not say which count it is.
             "total_hosts": total_hosts
         }
     except ValueError as e:
