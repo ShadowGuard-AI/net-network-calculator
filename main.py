@@ -44,11 +44,8 @@ def calculate_network_info(ip_address, cidr_mask):
 
         # Calculate usable host range
         if network.num_addresses > 2:
-            # I build the whole hosts list just to read its two ends. On a /8 that
-            # is millions of entries, and on a /0 it is not finishing at all. The
-            # arithmetic shortcut exists; I have not taken it yet.
-            first_usable_host = str(list(network.hosts())[0])
-            last_usable_host = str(list(network.hosts())[-1])
+            first_usable_host = str(network.network_address + 1)
+            last_usable_host = str(network.broadcast_address - 1)
         else:
             # /31 and /32 land here. Real point to point links use both /31
             # addresses as hosts, but this tool reports them as unusable rather
